@@ -1,23 +1,23 @@
-﻿using LukeSkywalker.IPNetwork;
-using System;
+﻿using System.Collections.Generic;
+using LukeSkywalker.IPNetwork;
 using System.Collections;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
-using System.Net.Sockets;
 using System.Runtime.InteropServices;
-using System.Text;
-using System.Threading;
+using System.Net.Sockets;
 using System.Diagnostics;
+using System.Threading;
+using System.Text;
 using System.IO;
+using System;
 
 
 
 namespace google
 {
-    class Program
+    static class Program
     {
 
         [DllImport("iphlpapi.dll", ExactSpelling = true)]
@@ -25,19 +25,161 @@ namespace google
 
 
 
-        static void Main(string sourcefolder, string destination)
+        static int Main(string[] Arguments)
         {
+
 
             
 
-          
+
+            if (IsNullOrEmpty(Arguments) || Arguments[0].ToLower() == "/h" || Arguments[0].ToLower() == "/help" || Arguments[0].ToLower() == "/?")
+            {
+                Console.Write(helptext("fullhelp").ToString());
+                return 0;
+            };
+
+            string SourceFolder = null;
+            string Destinationfolder = null;
+            string DiscoverExceptions = null;
+            string Logfile = null;
+            string[] ExceptionsArray = null;
+
+            for (int i = 0; i < Arguments.Length; i++)
+            {
+                Arguments[i] = Arguments[i].ToLower();
+                if (Arguments[i].StartsWith("sourcefolder"))
+                {// source folde validations
+
+                    try
+                    {
+                        SourceFolder = Arguments[i + 1];
+                    }
+                    catch (Exception)
+                    {
+                        Console.Write("Please type a valid argument for the /sourcefolder location" + '\n');
+                        Console.Write(helptext("EXAMPLES").ToString());
+                        return 0;
+                    }
+                    
+
+                    bool invalidcharacters = SourceFolder.IndexOfAny(Path.GetInvalidPathChars()) == -1;
+                    if (!invalidcharacters)
+                    {
+                        Console.Write("The path " + "\"" +SourceFolder+ "\"" + "contains invalid charactevrs" + '\n');
+                        Console.Write(helptext("EXAMPLES").ToString());
+                        return 0;
+                    }
+                    else if (!Directory.Exists(SourceFolder))
+                    {
+                        Console.Write("Couldnt find path "+ "\"" + SourceFolder + "\"" +'\n');
+                        Console.Write(helptext("EXAMPLES").ToString());
+                        return 0;
+                    }
+
+                }
+                else if (Arguments[i].StartsWith("destinationfolder"))
+                {// destination folder validations
+                   
+
+                    try
+                    {
+                        Destinationfolder = Arguments[i + 1];
+                    }
+                    catch (Exception)
+                    {
+                        Console.Write("Please type a valid argument for the /destinationfolder location" + '\n');
+                        Console.Write(helptext("EXAMPLES").ToString());
+                        return 0;
+                    }
+
+                    bool invalidcharacters = Destinationfolder.IndexOfAny(Path.GetInvalidPathChars()) == -1;
+                    if (!invalidcharacters)
+                    {
+                        Console.Write("The path " + Destinationfolder + "contains invalid characters" + '\n');
+                        Console.Write(helptext("EXAMPLES").ToString());
+                        return 0;
+                    }
+
+
+
+                }
+                else if (Arguments[i].StartsWith("discoverexceptions"))
+                {// discover exceptions validations
+
+                    DiscoverExceptions = Arguments[i + 1];
+
+                    try
+                    {
+                        DiscoverExceptions = Arguments[i + 1];
+                    }
+                    catch (Exception)
+                    {
+                        Console.Write("Please type a valid argument for /discoverexceptions " + '\n');
+                        Console.Write(helptext("EXAMPLES").ToString());
+                        return 0;
+                    }
+                    ExceptionsArray = DiscoverExceptions.Split(',');
+
+
+
+                }
+                else if (Arguments[i].StartsWith("logfile"))
+                {// location of log folder validations
+
+                    try
+                    {
+                        Logfile = Arguments[i + 1];
+                    }
+                    catch (Exception)
+                    {
+
+                        throw;
+                    }                        
+                    
+                    if (true)
+                    {
+
+                    }
+                }
+         
+
+            }
+
+             if (SourceFolder == null ||  Destinationfolder == null || Logfile == null)
+            {
+                Console.Write("There are missing mandatory parameters");
+                Console.Write(helptext("EXAMPLES").ToString());
+                return 0;
+            }
 
 
 
             ////////////////////////////////////////////////////////////
 
-            System.Diagnostics.Process.Start("arp.exe", "/d");
+            startlogic(SourceFolder, Destinationfolder, Logfile, ExceptionsArray);
 
+            return 0;
+
+
+        }
+
+        public static bool IsNullOrEmpty(this Array array)
+        {
+            return (array == null || array.Length == 0);
+        }
+        
+        static int startlogic(string SourceFolder, string Destinationfolder, string Logfile)
+        {
+            int returnval = 0;
+            string[] DiscoverExceptions = { "value 1", "value 2", "value 3" };
+            startlogic(SourceFolder, Destinationfolder, Logfile, DiscoverExceptions);
+            return returnval;
+        }
+            static int startlogic(string SourceFolder, string Destinationfolder, string Logfile, string[] DiscoverExceptions )
+        {
+
+        //Clean server arp chache
+        System.Diagnostics.Process.Start("arp.exe", "/d");
 
             //get Ip 
             string serverIP;
@@ -53,44 +195,103 @@ namespace google
             Console.WriteLine("discover complete");
             foreach (var item in listOfDevicesInTheSubnet.Keys)
             {
-                System.IO.File.AppendAllText("c:\\listOfDevicesInTheSubnet.txt", item);
+                System.IO.File.AppendAllText(Logfile + "\\listOfDevicesInTheSubnet.txt", item + '\n');
             }
 
 
-
             //NetworkInterface[] adapters = NetworkInterface.GetAllNetworkInterfaces();
-            Dictionary<string, string> listOfMachinesInTheSubnet = resolveName(listOfDevicesInTheSubnet);
+            Dictionary<string, string> listOfMachinesInTheSubnet = resolveName(listOfDevicesInTheSubnet,DiscoverExceptions);
 
 
             foreach (var item in listOfMachinesInTheSubnet.Keys)
             {
-                System.IO.File.AppendAllText("c:\\listOfMachinesInTheSubnet.txt", item);
+                System.IO.File.AppendAllText(Logfile + "\\listOfMachinesInTheSubnet.txt", item + '\n');
             }
             Console.WriteLine("discover filter complete");
 
-            Console.WriteLine("D:\\Herramientas_Comerciales");
-            Console.WriteLine("\\D$\\Mis documentos\\Herramientas_Comerciales");
+            Console.WriteLine(SourceFolder);
+            Console.WriteLine(Destinationfolder);
             Console.ReadKey();
-            foreach(var machine in listOfMachinesInTheSubnet.Keys)
+            foreach (var machine in listOfMachinesInTheSubnet.Keys)
             {
-                string vervose = copyFiles("D:\\Herramientas_Comerciales", machine, "\\D$\\Mis documentos\\Herramientas_Comerciales");
-                Console.WriteLine(vervose);
-                Console.ReadKey();
-                System.IO.File.AppendAllText("c:\\vervose.txt", vervose);
+                string vervose = copyFiles(SourceFolder, machine, Destinationfolder);
+                System.IO.File.AppendAllText(Logfile + "\\vervose.txt", vervose);
 
             }
 
 
-
-
-
-
-            Console.ReadLine();
-
-            //GetSubnetMask();
-
-
+            return 0;
         }
+
+
+        static string helptext(string helpPart)
+        {
+
+
+            string paramtext = @"
+
+DistributeFolder mirrors a folder content in all the machines of the local subnet. 
+
+
+
+    /SourceFolder           Specifies the Location of the folder where the files 
+                            to deploy are located.
+
+    /DestinationFolder      Specifies the destination of the folder where the files 
+                            to deploy .(if the folder doesnt exist it will be created)
+                                
+                        *** All the files in destination folder that arent in the source folder 
+                            will be DELETED !
+
+    /Logfile                Specifies the folder destination of the log file.
+                    
+    /DiscoverExceptions     This filter the machines in the subnet that name starts With the
+                            filter. 
+";
+            string Exampletext = @"
+--EXAMPLES
+
+        The command copies to the machines that start with PL, AD or CJ.
+        
+            DistributeFolder.exe  /SourceFolder  ""c:\Empty folder"" /DestinationFolder 
+            ""\\D$\Mis Documentos\trabajo""
+
+        The command copies to the machines that start with PL, AD or CJ.
+           
+            DistributeFolder.exe  /SourceFolder  ""c:\Empty folder"" /DestinationFolder 
+            ""\\D$\Mis Documentos\trabajo""
+
+        The command copies to the machines that start with PL, AD or CJ.
+
+            DistributeFolder.exe  /SourceFolder  ""c:\Empty folder"" /DestinationFolder 
+            ""\\D$\Mis Documentos\trabajo""
+        
+        The command copies to the machines that start with PL, AD or CJ.
+
+            DistributeFolder.exe  /SourceFolder  ""c:\Empty folder"" /DestinationFolder 
+            ""\\D$\Mis Documentos\trabajo"" /DiscoverExceptions ""PL,AD,CJ""
+
+";
+
+            string outstring = null;
+
+
+            switch (helpPart.ToLower())
+            {
+                case "fullhelp":
+                    outstring = paramtext + Exampletext;
+                    break;
+                case "help":
+                    outstring = paramtext;
+                    break;
+                case "examples":
+                    outstring = Exampletext;
+                    break;
+            }
+
+            return outstring;
+        }
+
 
         public static string GetLocalIPAddress()
         {
@@ -107,55 +308,6 @@ namespace google
             }
             throw new Exception("Local IP Address Not Found!");
         }
-
-
-
-
-
-
-
-        public static Dictionary<string, string> filtermachines(params string[] ipList)
-        {
-
-            Dictionary<string, string> dictionary = new Dictionary<string, string>();
-
-
-            string nameo = null;
-            nameo = Dns.GetHostEntry("173.252.120.68").ToString();
-
-            dictionary.Add(nameo, nameo);
-
-            return dictionary;
-        }
-
-
-
-
-
-
-
-
-
-        public static void GetSubnetMask()
-        {
-            foreach (NetworkInterface adapter in NetworkInterface.GetAllNetworkInterfaces())
-            {
-                foreach (UnicastIPAddressInformation unicastIPAddressInformation in adapter.GetIPProperties().UnicastAddresses)
-                {
-                    if (unicastIPAddressInformation.Address.AddressFamily == AddressFamily.InterNetwork)
-                    {
-
-
-                        Console.Write(unicastIPAddressInformation);
-                        //return unicastIPAddressInformation.IPv4Mask;
-                    }
-
-                }
-            }
-        }
-
-
-
 
 
         static string returnIp;
@@ -204,7 +356,7 @@ namespace google
         }
 
         //filter subnet machines get by arp sweep, to remove printers an another devices
-        public static Dictionary<string, string> resolveName(Dictionary<string, string> ipList)
+        public static Dictionary<string, string> resolveName(Dictionary<string, string> ipList, string[] DNSExceptions)
         {
             Dictionary<string, string> FilteredComputers = new Dictionary<string, string>();
 
@@ -222,9 +374,9 @@ namespace google
                     string hostName = System.Net.Dns.GetHostEntry(machine).HostName;
                     domainName = "." + domainName;
 
-
-
-                    string[] Exceptions = { "CJ", "PL", "AD", "w" };
+                    
+                    
+                    string[] Exceptions = DNSExceptions;
 
                     foreach (var Exception in Exceptions)
                     {
@@ -313,7 +465,7 @@ namespace google
                 Process.StartInfo.CreateNoWindow = true;
                 Process.StartInfo.RedirectStandardOutput = true;
                 Process.StartInfo.Arguments = parameters;
-              
+
                 Process.Start();
                 Process.WaitForExit();
                 logInfo = Process.StandardOutput.ReadToEnd();
