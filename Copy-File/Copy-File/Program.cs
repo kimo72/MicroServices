@@ -8,7 +8,7 @@ using System.Net.NetworkInformation;
 using System.Runtime.InteropServices;
 using System.Net.Sockets;
 using System.Diagnostics;
-using System.Threading;
+using System.Threading.Tasks;
 using System.Text;
 using System.IO;
 using System;
@@ -29,7 +29,7 @@ namespace google
         {
 
 
-            
+            //List<string> ssssssssssajdhf = copyFiles("d:\\lempty", "localhost", "\\d$\\damage");
 
 
             if (IsNullOrEmpty(Arguments) || Arguments[0].ToLower() == "/h" || Arguments[0].ToLower() == "/help" || Arguments[0].ToLower() == "/?")
@@ -43,6 +43,7 @@ namespace google
             string DiscoverExceptions = null;
             string Logfile = null;
             string[] ExceptionsArray = null;
+            string listofmachines = null;
 
             for (int i = 0; i < Arguments.Length; i++)
             {
@@ -60,18 +61,18 @@ namespace google
                         Console.Write(helptext("EXAMPLES").ToString());
                         return 0;
                     }
-                    
+
 
                     bool invalidcharacters = SourceFolder.IndexOfAny(Path.GetInvalidPathChars()) == -1;
                     if (!invalidcharacters)
                     {
-                        Console.Write("The path " + "\"" +SourceFolder+ "\"" + "contains invalid charactevrs" + '\n');
+                        Console.Write("The path " + "\"" + SourceFolder + "\"" + "contains invalid charactevrs" + '\n');
                         Console.Write(helptext("EXAMPLES").ToString());
                         return 0;
                     }
                     else if (!Directory.Exists(SourceFolder))
                     {
-                        Console.Write("Couldnt find path "+ "\"" + SourceFolder + "\"" +'\n');
+                        Console.Write("Couldnt find path " + "\"" + SourceFolder + "\"" + '\n');
                         Console.Write(helptext("EXAMPLES").ToString());
                         return 0;
                     }
@@ -79,7 +80,7 @@ namespace google
                 }
                 else if (Arguments[i].StartsWith("destinationfolder"))
                 {// destination folder validations
-                   
+
 
                     try
                     {
@@ -123,6 +124,36 @@ namespace google
 
 
                 }
+                else if (Arguments[i].StartsWith("listofmachines"))
+                {// file this machines list
+
+                    try
+                    {
+                        listofmachines = Arguments[i + 1];
+                    }
+                    catch (Exception)
+                    {
+                        Console.Write("Please type a valid argument for the /listofmachines location" + '\n');
+                        Console.Write(helptext("EXAMPLES").ToString());
+                        return 0;
+                    }
+
+
+                    bool invalidcharacters = listofmachines.IndexOfAny(Path.GetInvalidPathChars()) == -1;
+                    if (!invalidcharacters)
+                    {
+                        Console.Write("The path " + "\"" + listofmachines + "\"" + "contains invalid charactevrs" + '\n');
+                        Console.Write(helptext("EXAMPLES").ToString());
+                        return 0;
+                    }
+                    else if (!Directory.Exists(listofmachines))
+                    {
+                        Console.Write("Couldnt find path " + "\"" + listofmachines + "\"" + '\n');
+                        Console.Write(helptext("EXAMPLES").ToString());
+                        return 0;
+                    }
+
+                }
                 else if (Arguments[i].StartsWith("logfile"))
                 {// location of log folder validations
 
@@ -134,20 +165,16 @@ namespace google
                     {
 
                         throw;
-                    }                        
-                    
-                    if (true)
-                    {
-
                     }
+
                 }
-         
+
 
             }
 
-             if (SourceFolder == null ||  Destinationfolder == null || Logfile == null)
+            if (SourceFolder == null || Destinationfolder == null || Logfile == null)
             {
-                Console.Write("There are missing mandatory parameters");
+                Console.Write("There are missing mandatory parameters" + '\n');
                 Console.Write(helptext("EXAMPLES").ToString());
                 return 0;
             }
@@ -167,7 +194,7 @@ namespace google
         {
             return (array == null || array.Length == 0);
         }
-        
+
         static int startlogic(string SourceFolder, string Destinationfolder, string Logfile)
         {
             int returnval = 0;
@@ -175,11 +202,11 @@ namespace google
             startlogic(SourceFolder, Destinationfolder, Logfile, DiscoverExceptions);
             return returnval;
         }
-            static int startlogic(string SourceFolder, string Destinationfolder, string Logfile, string[] DiscoverExceptions )
+        static int startlogic(string SourceFolder, string Destinationfolder, string Logfile, string[] DiscoverExceptions)
         {
 
-        //Clean server arp chache
-        System.Diagnostics.Process.Start("arp.exe", "/d");
+            //Clean server arp chache
+            System.Diagnostics.Process.Start("arp.exe", "/d");
 
             //get Ip 
             string serverIP;
@@ -200,7 +227,7 @@ namespace google
 
 
             //NetworkInterface[] adapters = NetworkInterface.GetAllNetworkInterfaces();
-            Dictionary<string, string> listOfMachinesInTheSubnet = resolveName(listOfDevicesInTheSubnet,DiscoverExceptions);
+            Dictionary<string, string> listOfMachinesInTheSubnet = resolveName(listOfDevicesInTheSubnet, DiscoverExceptions);
 
 
             foreach (var item in listOfMachinesInTheSubnet.Keys)
@@ -211,13 +238,23 @@ namespace google
 
             Console.WriteLine(SourceFolder);
             Console.WriteLine(Destinationfolder);
-            Console.ReadKey();
-            foreach (var machine in listOfMachinesInTheSubnet.Keys)
-            {
-                string vervose = copyFiles(SourceFolder, machine, Destinationfolder);
-                System.IO.File.AppendAllText(Logfile + "\\vervose.txt", vervose);
+            //Console.ReadKey();
 
+
+
+            List<List<string>> vervose = CopyFileParallel(SourceFolder, listOfMachinesInTheSubnet.Keys.ToArray(), Destinationfolder);
+            foreach (var items in vervose)
+            {
+                
+                foreach (var item in items)
+                {
+                    System.IO.File.AppendAllText(Logfile + "\\vervose.txt", item.ToString() + '\n');
+                }
+                
             }
+            
+
+
 
 
             return 0;
@@ -247,6 +284,10 @@ DistributeFolder mirrors a folder content in all the machines of the local subne
                     
     /DiscoverExceptions     This filter the machines in the subnet that name starts With the
                             filter. 
+
+    /listofmachines         This parameter overrides the discovery of The networksubnet and allows, to
+                            distribute the folder, to a list of machines in a .txt file.
+
 ";
             string Exampletext = @"
 --EXAMPLES
@@ -273,9 +314,9 @@ DistributeFolder mirrors a folder content in all the machines of the local subne
 
 ";
 
-            string outstring = null;
+            string outstring = "";
 
-
+            ConsoleKeyInfo cki;
             switch (helpPart.ToLower())
             {
                 case "fullhelp":
@@ -285,7 +326,16 @@ DistributeFolder mirrors a folder content in all the machines of the local subne
                     outstring = paramtext;
                     break;
                 case "examples":
-                    outstring = Exampletext;
+                    Console.Write("Press Y to show examples" + '\n');
+                    cki = Console.ReadKey();
+                    cki.Key.ToString();
+
+
+                    if (cki.KeyChar.Equals('Y') || cki.KeyChar.Equals('y'))
+                    {
+                        outstring = Exampletext;
+                    }
+
                     break;
             }
 
@@ -323,15 +373,15 @@ DistributeFolder mirrors a folder content in all the machines of the local subne
             List<string> ipList2 = new List<string>();
             ipList2.Add("192.168.0.1");
             ipList2.Add("192.168.0.18");
-            ipList2.Add("192.168.0.22");
-            ipList2.Add("192.168.0.114");
-            ipList2.Add("192.168.0.232");
+            ipList2.Add("192.168.0.24");
+            ipList2.Add("192.168.0.12");
+            ipList2.Add("192.168.0.222");
             //string[,] myCollection ;
             Dictionary<string, string> dictionary = new Dictionary<string, string>();
 
 
 
-            foreach (var ip in ipList)
+            foreach (var ip in ipList2)
             {
 
                 IPAddress dst = IPAddress.Parse(ip);
@@ -374,8 +424,8 @@ DistributeFolder mirrors a folder content in all the machines of the local subne
                     string hostName = System.Net.Dns.GetHostEntry(machine).HostName;
                     domainName = "." + domainName;
 
-                    
-                    
+
+
                     string[] Exceptions = DNSExceptions;
 
                     foreach (var Exception in Exceptions)
@@ -446,39 +496,81 @@ DistributeFolder mirrors a folder content in all the machines of the local subne
         }
 
 
-        static string copyFiles(string FolderOrigin, string Machine, string FolderDestination)
+        private static List<List<string>> CopyFileParallel(string folderOrigin, string[] machines, string folderDestination)
         {
-            string logInfo = null;
-
-            String parameters;
-            // creates the string that contain the parameters for execution of the process
-            parameters = "\"" + FolderOrigin + "\" " + "\"\\\\" + Machine + FolderDestination + "\" " + "/mir /s";
-
-            Console.Write(parameters);
-            Process Process = new Process();
-
-            try
+            //int[] arr = Enumerable.Range(1, 10).ToArray();
+            List<List<string>> collection = new List<List<string>>();
+            //string Machine = "localhost";
+            List<string> collection2 = new List<string>();
+            Parallel.ForEach(machines, (machine) =>
             {
-                Process.StartInfo.UseShellExecute = false;
-                // You can start any process, HelloWorld is a do-nothing example.
-                Process.StartInfo.FileName = "robocopy.exe";
-                Process.StartInfo.CreateNoWindow = true;
-                Process.StartInfo.RedirectStandardOutput = true;
-                Process.StartInfo.Arguments = parameters;
+                string parameters = "\"" + folderOrigin + "\" " + "\"\\\\" + machine + folderDestination + machine + "\" " + "/mir /s";
+                string logInfo;
 
-                Process.Start();
-                Process.WaitForExit();
-                logInfo = Process.StandardOutput.ReadToEnd();
+                Process process = new Process();
+                process.StartInfo.UseShellExecute = false;
+                process.StartInfo.FileName = "robocopy.exe";
+                process.StartInfo.CreateNoWindow = true;
+                process.StartInfo.RedirectStandardOutput = true;
+                process.StartInfo.Arguments = parameters;
 
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e.Message);
-            }
+                process.Start();
+
+                //set the maximun allowed time in which the robocopy lives 
+                if (process.WaitForExit(1500))
+                {
+                    logInfo = process.StandardOutput.ReadToEnd();
+                    string[] FL = logInfo.Split(new[] { '\r', '\n' });
+                    var Ended = Array.FindIndex(FL, x => x.Contains("Ended"));
+                    var Started = Array.FindIndex(FL, x => x.Contains("Started"));
+                    var Source = Array.FindIndex(FL, x => x.Contains("Source"));
+                    var Dest = Array.FindIndex(FL, x => x.Contains("Dest"));
+                    var Total = Array.FindIndex(FL, x => x.Contains("Total"));
+                    var Dirs = Array.FindIndex(FL, x => x.Contains("Dirs"));
+                    var Files = Array.FindIndex(FL, x => x.Contains("Files :  "));
+                    var line = Array.FindIndex(FL, x => x.Contains("-----"));
+
+                    try
+                    {
+                        List<string> formatlogfile = new List<string> { FL[Ended], FL[Started], FL[Source], FL[Dest], FL[line], FL[Total], FL[Dirs], FL[Files], FL[line] };
+                        foreach (string logLine in formatlogfile)
+                        {
+                            Console.WriteLine(logLine);
+                        }
+                        collection.Add(formatlogfile);
+
+                    }
+                    catch (Exception)
+                    {
+                        Console.WriteLine("the process is fuck up");
+                        collection.Add(FL.ToList());
+                        //savefullerrordetail(logInfo, parameters);
+
+                    }
+
+                }
+                else
+                {
+                    Console.WriteLine("Timeout");
+
+                    //logInfo = process.StandardOutput.ReadToEnd();
+                    //collection2.Add(logInfo);
+                    //Console.WriteLine(logInfo);
+
+                    process.Kill();
+                }
 
 
-            return logInfo;
+            });
+
+
+            Console.WriteLine("Finished copy execution");
+
+
+            return collection;
+
         }
+
 
 
 
