@@ -38,9 +38,8 @@ namespace google
                 return 0;
             };
 
-            string SourceFolder = null;
-            string Destinationfolder = null;
             string DiscoverExceptions = null;
+            string distributionFile = null;
             string Logfile = null;
             string[] ExceptionsArray = null;
             string listofmachines = null;
@@ -48,63 +47,9 @@ namespace google
             for (int i = 0; i < Arguments.Length; i++)
             {
                 Arguments[i] = Arguments[i].ToLower();
-                if (Arguments[i].StartsWith("sourcefolder"))
-                {// source folde validations
-
-                    try
-                    {
-                        SourceFolder = Arguments[i + 1];
-                    }
-                    catch (Exception)
-                    {
-                        Console.Write("Please type a valid argument for the /sourcefolder location" + '\n');
-                        Console.Write(helptext("EXAMPLES").ToString());
-                        return 0;
-                    }
 
 
-                    bool invalidcharacters = SourceFolder.IndexOfAny(Path.GetInvalidPathChars()) == -1;
-                    if (!invalidcharacters)
-                    {
-                        Console.Write("The path " + "\"" + SourceFolder + "\"" + "contains invalid charactevrs" + '\n');
-                        Console.Write(helptext("EXAMPLES").ToString());
-                        return 0;
-                    }
-                    else if (!Directory.Exists(SourceFolder))
-                    {
-                        Console.Write("Couldnt find path " + "\"" + SourceFolder + "\"" + '\n');
-                        Console.Write(helptext("EXAMPLES").ToString());
-                        return 0;
-                    }
-
-                }
-                else if (Arguments[i].StartsWith("destinationfolder"))
-                {// destination folder validations
-
-
-                    try
-                    {
-                        Destinationfolder = Arguments[i + 1];
-                    }
-                    catch (Exception)
-                    {
-                        Console.Write("Please type a valid argument for the /destinationfolder location" + '\n');
-                        Console.Write(helptext("EXAMPLES").ToString());
-                        return 0;
-                    }
-
-                    bool invalidcharacters = Destinationfolder.IndexOfAny(Path.GetInvalidPathChars()) == -1;
-                    if (!invalidcharacters)
-                    {
-                        Console.Write("The path " + Destinationfolder + "contains invalid characters" + '\n');
-                        Console.Write(helptext("EXAMPLES").ToString());
-                        return 0;
-                    }
-
-
-
-                }
-                else if (Arguments[i].StartsWith("discoverexceptions"))
+                if (Arguments[i].Equals("discoverexceptions"))
                 {// discover exceptions validations
 
                     DiscoverExceptions = Arguments[i + 1];
@@ -124,7 +69,7 @@ namespace google
 
 
                 }
-                else if (Arguments[i].StartsWith("listofmachines"))
+                else if (Arguments[i].Equals("listofmachines"))
                 {// file this machines list
 
                     try
@@ -146,15 +91,15 @@ namespace google
                         Console.Write(helptext("EXAMPLES").ToString());
                         return 0;
                     }
-                    else if (!Directory.Exists(listofmachines))
+                    else if (!File.Exists(listofmachines))
                     {
-                        Console.Write("Couldnt find path " + "\"" + listofmachines + "\"" + '\n');
+                        Console.Write("Couldnt find the file " + "\"" + listofmachines + "\"" + '\n');
                         Console.Write(helptext("EXAMPLES").ToString());
                         return 0;
                     }
 
                 }
-                else if (Arguments[i].StartsWith("logfile"))
+                else if (Arguments[i].Equals("logfile"))
                 {// location of log folder validations
 
                     try
@@ -163,27 +108,99 @@ namespace google
                     }
                     catch (Exception)
                     {
-
                         throw;
                     }
 
                 }
+                else if (Arguments[i].Equals("distributionfile"))
+                {// location the file that contains the rules 
+
+                    try
+                    {
+                        distributionFile = Arguments[i + 1];
+                    }
+                    catch (Exception)
+                    {
+                        Console.Write("Please type a valid argument for the /distributionfile location" + '\n');
+                        Console.Write(helptext("EXAMPLES").ToString());
+                        return 0;
+                    }
+
+
+
+
+
+                    bool invalidcharacters = distributionFile.IndexOfAny(Path.GetInvalidPathChars()) == -1;
+                    if (!invalidcharacters)
+                    {
+                        Console.Write("The path " + "\"" + distributionFile + "\"" + "contains invalid charactevrs" + '\n');
+                        Console.Write(helptext("EXAMPLES").ToString());
+                        return 0;
+                    }
+                    else if (!File.Exists(distributionFile))
+                    {
+                        Console.Write("Couldnt find the file " + "\"" + distributionFile + "\"" + '\n');
+                        Console.Write(helptext("EXAMPLES").ToString());
+                        return 0;
+                    }
+
+
+                }
+
 
 
             }
 
-            if (SourceFolder == null || Destinationfolder == null || Logfile == null)
+            List<string> machinesListCSV = new List<string>();
+            List<string> distributionRulesCSV = new List<string>();
+            if (Logfile != null)
             {
-                Console.Write("There are missing mandatory parameters" + '\n');
+
+                //validate mandatory parameters
+
+                if (distributionFile != null && listofmachines != null)
+                {
+
+
+                    machinesListCSV = splitlinesCSV(listofmachines);
+                    distributionRulesCSV = splitlinesCSV(distributionFile);
+                    if (machinesListCSV == null || distributionRulesCSV == null)
+                    {
+                        Console.Write("Unable to parce the distributionFile" + distributionFile + '\n');
+                        return 0;
+                    }
+
+
+                }
+                else if (distributionFile != null && DiscoverExceptions != null)
+                {
+
+                    distributionRulesCSV = splitlinesCSV(distributionFile);
+
+
+                    //DiscoverExceptions
+                }
+                else
+                {
+                    //specify the list of machines to deploy  
+                    Console.Write(helptext("EXAMPLES").ToString());
+                    return 0;
+
+                }
+
+            }
+            else
+            {
+                //mising log file o ditribution file
                 Console.Write(helptext("EXAMPLES").ToString());
                 return 0;
             }
 
 
-
             ////////////////////////////////////////////////////////////
-
-            startlogic(SourceFolder, Destinationfolder, Logfile, ExceptionsArray);
+            //machinesListCSV = splitlinesCSV(listofmachines);
+            //distributionRulesCSV = splitlinesCSV(distributionFile);
+            startlogic(distributionRulesCSV, machinesListCSV, Logfile, ExceptionsArray);
 
             return 0;
 
@@ -194,15 +211,24 @@ namespace google
         {
             return (array == null || array.Length == 0);
         }
+        static int startlogic(List<string> DistributionsRules, List<string> DestinationMachines)
+        {
 
-        static int startlogic(string SourceFolder, string Destinationfolder, string Logfile)
+            string Logfile = "%temp%";
+            int returnval = 0;
+            string[] DiscoverExceptions = { "value 1", "value 2", "value 3" };
+            startlogic(DistributionsRules, DestinationMachines, Logfile, DiscoverExceptions);
+            return returnval;
+        }
+
+        static int startlogic(List<string> DistributionsRules, List<string> DestinationMachines, string Logfile)
         {
             int returnval = 0;
             string[] DiscoverExceptions = { "value 1", "value 2", "value 3" };
-            startlogic(SourceFolder, Destinationfolder, Logfile, DiscoverExceptions);
+            startlogic(DistributionsRules, DestinationMachines, Logfile, DiscoverExceptions);
             return returnval;
         }
-        static int startlogic(string SourceFolder, string Destinationfolder, string Logfile, string[] DiscoverExceptions)
+        static int startlogic(List<string> DistributionsRules, List<string> DestinationMachines, string Logfile, string[] DiscoverExceptions)
         {
 
             //Clean server arp chache
@@ -236,23 +262,23 @@ namespace google
             }
             Console.WriteLine("discover filter complete");
 
-            Console.WriteLine(SourceFolder);
-            Console.WriteLine(Destinationfolder);
+            Console.WriteLine(DistributionsRules);
+            Console.WriteLine(DestinationMachines);
             //Console.ReadKey();
 
 
 
-            List<List<string>> vervose = CopyFileParallel(SourceFolder, listOfMachinesInTheSubnet.Keys.ToArray(), Destinationfolder);
+            List<List<string>> vervose = CopyFileParallel(DestinationMachines, DistributionsRules);
             foreach (var items in vervose)
             {
-                
+
                 foreach (var item in items)
                 {
                     System.IO.File.AppendAllText(Logfile + "\\vervose.txt", item.ToString() + '\n');
                 }
-                
+
             }
-            
+
 
 
 
@@ -267,26 +293,21 @@ namespace google
 
             string paramtext = @"
 
-DistributeFolder mirrors a folder content in all the machines of the local subnet. 
+Distributefiles mirrors a folder content in all the machines of the local subnet. 
 
 
-
-    /SourceFolder           Specifies the Location of the folder where the files 
-                            to deploy are located.
-
-    /DestinationFolder      Specifies the destination of the folder where the files 
-                            to deploy .(if the folder doesnt exist it will be created)
-                                
-                        *** All the files in destination folder that arent in the source folder 
-                            will be DELETED !
-
-    /Logfile                Specifies the folder destination of the log file.
+    /DistributionFile       Specifies the Location of the the file that contains the rules to deploy 
+                            the files.
+    
+    /Logfile                Specifies the folder destination of the log file. The default value is 
+                            the temp folder.
                     
+    /ListOfMachines         This parameter overrides the discovery of The networksubnet and allows, to
+                            distribute the folder, to a list of machines in a .txt file.
+    
     /DiscoverExceptions     This filter the machines in the subnet that name starts With the
                             filter. 
 
-    /listofmachines         This parameter overrides the discovery of The networksubnet and allows, to
-                            distribute the folder, to a list of machines in a .txt file.
 
 ";
             string Exampletext = @"
@@ -496,73 +517,170 @@ DistributeFolder mirrors a folder content in all the machines of the local subne
         }
 
 
-        private static List<List<string>> CopyFileParallel(string folderOrigin, string[] machines, string folderDestination)
+
+        static List<string> splitlinesCSV(string filepath)
         {
-            //int[] arr = Enumerable.Range(1, 10).ToArray();
+
+
+            var reader = new StreamReader(File.OpenRead(filepath));
+            List<string> csvLines = new List<string>();
+
+            while (!reader.EndOfStream)
+            {
+                var line = reader.ReadLine();
+                csvLines.Add(line);
+            }
+            return csvLines;
+        }
+
+        private static List<List<string>> CopyFileParallel(List<string> machines, List<string> fileRules)
+        {
+
+
+
+
+
+
+
             List<List<string>> collection = new List<List<string>>();
             //string Machine = "localhost";
             List<string> collection2 = new List<string>();
-            Parallel.ForEach(machines, (machine) =>
+            //Parallel.ForEach(machines, (machine) =>
+            //{
+
+            foreach (var machine in machines)
             {
-                string parameters = "\"" + folderOrigin + "\" " + "\"\\\\" + machine + folderDestination + machine + "\" " + "/mir /s";
-                string logInfo;
 
-                Process process = new Process();
-                process.StartInfo.UseShellExecute = false;
-                process.StartInfo.FileName = "robocopy.exe";
-                process.StartInfo.CreateNoWindow = true;
-                process.StartInfo.RedirectStandardOutput = true;
-                process.StartInfo.Arguments = parameters;
-
-                process.Start();
-
-                //set the maximun allowed time in which the robocopy lives 
-                if (process.WaitForExit(1500))
+                foreach (var fileRule in fileRules)
                 {
-                    logInfo = process.StandardOutput.ReadToEnd();
-                    string[] FL = logInfo.Split(new[] { '\r', '\n' });
-                    var Ended = Array.FindIndex(FL, x => x.Contains("Ended"));
-                    var Started = Array.FindIndex(FL, x => x.Contains("Started"));
-                    var Source = Array.FindIndex(FL, x => x.Contains("Source"));
-                    var Dest = Array.FindIndex(FL, x => x.Contains("Dest"));
-                    var Total = Array.FindIndex(FL, x => x.Contains("Total"));
-                    var Dirs = Array.FindIndex(FL, x => x.Contains("Dirs"));
-                    var Files = Array.FindIndex(FL, x => x.Contains("Files :  "));
-                    var line = Array.FindIndex(FL, x => x.Contains("-----"));
+                    string parameters = null;
+                    string source = null;
+                    string destination = null;
+                    string filename = null;
 
+                    //formats the source an destination rules
+                    var rules = fileRule.Split(',');
                     try
                     {
-                        List<string> formatlogfile = new List<string> { FL[Ended], FL[Started], FL[Source], FL[Dest], FL[line], FL[Total], FL[Dirs], FL[Files], FL[line] };
-                        foreach (string logLine in formatlogfile)
-                        {
-                            Console.WriteLine(logLine);
-                        }
-                        collection.Add(formatlogfile);
-
+                        source = rules[0];
+                        destination = rules[1];
+                        
                     }
                     catch (Exception)
                     {
-                        Console.WriteLine("the process is fuck up");
-                        collection.Add(FL.ToList());
-                        //savefullerrordetail(logInfo, parameters);
+                        Console.Write("the source and destinationr are empty");
+                        continue;
+                    }
+
+
+                   
+
+
+
+                    if (Directory.Exists(source))
+                    {
+                        source = source.TrimEnd('\\');
+                        destination = destination.TrimEnd('\\');
+                        if (destination.StartsWith(@"\\"))
+                        {
+
+                             parameters = String.Format(" \"{0}\" \"\\\\{1}{2}\" /mir ", source, machine, destination);
+                        }
+                        else
+                        {
+                             parameters = String.Format(" \"{0}\" \"{1}\" /mir ", source, destination);
+                        }
+                    }
+                    else if (File.Exists(source))
+                    {
+                        filename = Path.GetFileName(source);
+                        destination = Path.GetDirectoryName(source);
+                        source = source.TrimEnd('\\');
+                        destination = destination.TrimEnd('\\');
+                        if (destination.StartsWith(@"\\"))
+                        {
+
+                            parameters = String.Format(" \"{0}\" \"\\\\{1}{2}\" {3}  ", source, machine, destination, filename);
+                        }
+                        else
+                        {
+                            parameters = String.Format(" \"{0}\" \"{1}\" {2}   ", source, destination, filename);
+                        }
+                    }
+                    else
+                    {
+                        Console.Write("couldnt find the file or folder to copy");
+                        continue;
 
                     }
 
+
+
+
+                    //create parameter string 
+                    //string parameters = "\"" + folderOrigin + "\" " + "\"\\\\" + machine + folderDestination + machine + "\" " + "/mir /s";
+                    string logInfo;
+
+
+                    // start copy for each file rule to the current machine 
+                    Process process = new Process();
+                    process.StartInfo.UseShellExecute = false;
+                    process.StartInfo.FileName = "robocopy.exe";
+                    process.StartInfo.CreateNoWindow = true;
+                    process.StartInfo.RedirectStandardOutput = true;
+                    process.StartInfo.Arguments = parameters;
+
+                    process.Start();
+
+                    //set the maximun allowed time in which the robocopy lives 
+                    if (process.WaitForExit(1500))
+                    {
+                        logInfo = process.StandardOutput.ReadToEnd();
+                        string[] FL = logInfo.Split(new[] { '\r', '\n' });
+                        var Ended = Array.FindIndex(FL, x => x.Contains("Ended"));
+                        var Started = Array.FindIndex(FL, x => x.Contains("Started"));
+                        var Source = Array.FindIndex(FL, x => x.Contains("Source"));
+                        var Dest = Array.FindIndex(FL, x => x.Contains("Dest"));
+                        var Total = Array.FindIndex(FL, x => x.Contains("Total"));
+                        var Dirs = Array.FindIndex(FL, x => x.Contains("Dirs"));
+                        var Files = Array.FindIndex(FL, x => x.Contains("Files :  "));
+                        var line = Array.FindIndex(FL, x => x.Contains("-----"));
+
+                        try
+                        {
+                            List<string> formatlogfile = new List<string> { FL[Ended], FL[Started], FL[Source], FL[Dest], FL[line], FL[Total], FL[Dirs], FL[Files], FL[line] };
+                            foreach (string logLine in formatlogfile)
+                            {
+                                Console.WriteLine(logLine);
+                            }
+                            collection.Add(formatlogfile);
+
+                        }
+                        catch (Exception)
+                        {
+                            Console.WriteLine("the process is fuck up");
+                            collection.Add(FL.ToList());
+                            //savefullerrordetail(logInfo, parameters);
+
+                        }
+
+                    }
+                    else
+                    {
+                        Console.WriteLine("Timeout");
+
+                        //logInfo = process.StandardOutput.ReadToEnd();
+                        //collection2.Add(logInfo);
+                        //Console.WriteLine(logInfo);
+
+                        process.Kill();
+                    }
+
                 }
-                else
-                {
-                    Console.WriteLine("Timeout");
 
-                    //logInfo = process.StandardOutput.ReadToEnd();
-                    //collection2.Add(logInfo);
-                    //Console.WriteLine(logInfo);
+                //});
 
-                    process.Kill();
-                }
-
-
-            });
-
+            }
 
             Console.WriteLine("Finished copy execution");
 
