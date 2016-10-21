@@ -34,7 +34,7 @@ namespace google
 
             if (IsNullOrEmpty(Arguments) || Arguments[0].ToLower() == "/h" || Arguments[0].ToLower() == "/help" || Arguments[0].ToLower() == "/?")
             {
-                Console.Write(helptext("fullhelp").ToString());
+                Console.WriteLine(helptext("fullhelp").ToString());
                 return 0;
             };
 
@@ -78,8 +78,8 @@ namespace google
                     }
                     catch (Exception)
                     {
-                        Console.Write("Please type a valid argument for the /listofmachines location" + '\n');
-                        Console.Write(helptext("EXAMPLES").ToString());
+                        Console.WriteLine("Please type a valid argument for the /listofmachines location" + '\n');
+                        Console.WriteLine(helptext("EXAMPLES").ToString());
                         return 0;
                     }
 
@@ -87,14 +87,14 @@ namespace google
                     bool invalidcharacters = listofmachines.IndexOfAny(Path.GetInvalidPathChars()) == -1;
                     if (!invalidcharacters)
                     {
-                        Console.Write("The path " + "\"" + listofmachines + "\"" + "contains invalid charactevrs" + '\n');
-                        Console.Write(helptext("EXAMPLES").ToString());
+                        Console.WriteLine("The path " + "\"" + listofmachines + "\"" + "contains invalid charactevrs" + '\n');
+                        Console.WriteLine(helptext("EXAMPLES").ToString());
                         return 0;
                     }
                     else if (!File.Exists(listofmachines))
                     {
-                        Console.Write("Couldnt find the file " + "\"" + listofmachines + "\"" + '\n');
-                        Console.Write(helptext("EXAMPLES").ToString());
+                        Console.WriteLine("Couldnt find the file " + "\"" + listofmachines + "\"" + '\n');
+                        Console.WriteLine(helptext("EXAMPLES").ToString());
                         return 0;
                     }
 
@@ -121,8 +121,8 @@ namespace google
                     }
                     catch (Exception)
                     {
-                        Console.Write("Please type a valid argument for the /distributionfile location" + '\n');
-                        Console.Write(helptext("EXAMPLES").ToString());
+                        Console.WriteLine("Please type a valid argument for the /distributionfile location" + '\n');
+                        Console.WriteLine(helptext("EXAMPLES").ToString());
                         return 0;
                     }
 
@@ -133,14 +133,14 @@ namespace google
                     bool invalidcharacters = distributionFile.IndexOfAny(Path.GetInvalidPathChars()) == -1;
                     if (!invalidcharacters)
                     {
-                        Console.Write("The path " + "\"" + distributionFile + "\"" + "contains invalid charactevrs" + '\n');
-                        Console.Write(helptext("EXAMPLES").ToString());
+                        Console.WriteLine("The path " + "\"" + distributionFile + "\"" + "contains invalid charactevrs" + '\n');
+                        Console.WriteLine(helptext("EXAMPLES").ToString());
                         return 0;
                     }
                     else if (!File.Exists(distributionFile))
                     {
-                        Console.Write("Couldnt find the file " + "\"" + distributionFile + "\"" + '\n');
-                        Console.Write(helptext("EXAMPLES").ToString());
+                        Console.WriteLine("Couldnt find the file " + "\"" + distributionFile + "\"" + '\n');
+                        Console.WriteLine(helptext("EXAMPLES").ToString());
                         return 0;
                     }
 
@@ -166,7 +166,7 @@ namespace google
                     distributionRulesCSV = splitlinesCSV(distributionFile);
                     if (machinesListCSV == null || distributionRulesCSV == null)
                     {
-                        Console.Write("Unable to parce the distributionFile" + distributionFile + '\n');
+                        Console.WriteLine("Unable to parce the distributionFile" + distributionFile + '\n');
                         return 0;
                     }
 
@@ -254,7 +254,7 @@ namespace google
 
             //NetworkInterface[] adapters = NetworkInterface.GetAllNetworkInterfaces();
             Dictionary<string, string> listOfMachinesInTheSubnet = resolveName(listOfDevicesInTheSubnet, DiscoverExceptions);
-
+            
 
             foreach (var item in listOfMachinesInTheSubnet.Keys)
             {
@@ -262,8 +262,8 @@ namespace google
             }
             Console.WriteLine("discover filter complete");
 
-            Console.WriteLine(DistributionsRules);
-            Console.WriteLine(DestinationMachines);
+            //Console.WriteLine(DistributionsRules);
+            //Console.WriteLine(DestinationMachines);
             //Console.ReadKey();
 
 
@@ -437,7 +437,7 @@ Distributefiles mirrors a folder content in all the machines of the local subnet
                 bool networkInterfaceWorking = new bool();
                 networkInterfaceWorking = NetworkInterface.GetIsNetworkAvailable();
 
-                Console.Write("se han encontrado interfaces activas");
+                Console.WriteLine("se han encontrado interfaces activas");
                 try
                 {
 
@@ -461,7 +461,7 @@ Distributefiles mirrors a folder content in all the machines of the local subnet
                 }
                 catch
                 {
-                    Console.Write("No se ha podido contactar con el dominio");
+                    Console.WriteLine("No se ha podido contactar con el dominio");
                 }
 
             }
@@ -550,134 +550,179 @@ Distributefiles mirrors a folder content in all the machines of the local subnet
 
             foreach (var machine in machines)
             {
-
-                foreach (var fileRule in fileRules)
+                Console.WriteLine("-----------------------------------"+ machine + "-----------------------------------");
+                //test conection to the machine 
+                PingReply reply = null;
+                Ping ping = new Ping();
+                try
                 {
-                    string parameters = null;
-                    string source = null;
-                    string destination = null;
-                    string filename = null;
+                     reply = ping.Send(machine);
+                }
+                catch (Exception)
+                {
+                  
 
-                    //formats the source an destination rules
-                    var rules = fileRule.Split(',');
-                    try
+
+                }
+
+
+                if (reply == null) {
+                    Console.WriteLine("unable to contact the machine" + machine);
+                }
+               
+                else if ( reply.Status == IPStatus.Success )
+                {
+
+
+                    foreach (var fileRule in fileRules)
                     {
-                        source = rules[0];
-                        destination = rules[1];
-                        
-                    }
-                    catch (Exception)
-                    {
-                        Console.Write("the source and destinationr are empty");
-                        continue;
-                    }
+                        string parameters = null;
+                        string source = null;
+                        string destination = null;
+                        string filename = null;
 
-
-                   
-
-
-
-                    if (Directory.Exists(source))
-                    {
-                        source = source.TrimEnd('\\');
-                        destination = destination.TrimEnd('\\');
-                        if (destination.StartsWith(@"\\"))
-                        {
-
-                             parameters = String.Format(" \"{0}\" \"\\\\{1}{2}\" /mir ", source, machine, destination);
-                        }
-                        else
-                        {
-                             parameters = String.Format(" \"{0}\" \"{1}\" /mir ", source, destination);
-                        }
-                    }
-                    else if (File.Exists(source))
-                    {
-                        filename = Path.GetFileName(source);
-                        destination = Path.GetDirectoryName(source);
-                        source = source.TrimEnd('\\');
-                        destination = destination.TrimEnd('\\');
-                        if (destination.StartsWith(@"\\"))
-                        {
-
-                            parameters = String.Format(" \"{0}\" \"\\\\{1}{2}\" {3}  ", source, machine, destination, filename);
-                        }
-                        else
-                        {
-                            parameters = String.Format(" \"{0}\" \"{1}\" {2}   ", source, destination, filename);
-                        }
-                    }
-                    else
-                    {
-                        Console.Write("couldnt find the file or folder to copy");
-                        continue;
-
-                    }
-
-
-
-
-                    //create parameter string 
-                    //string parameters = "\"" + folderOrigin + "\" " + "\"\\\\" + machine + folderDestination + machine + "\" " + "/mir /s";
-                    string logInfo;
-
-
-                    // start copy for each file rule to the current machine 
-                    Process process = new Process();
-                    process.StartInfo.UseShellExecute = false;
-                    process.StartInfo.FileName = "robocopy.exe";
-                    process.StartInfo.CreateNoWindow = true;
-                    process.StartInfo.RedirectStandardOutput = true;
-                    process.StartInfo.Arguments = parameters;
-
-                    process.Start();
-
-                    //set the maximun allowed time in which the robocopy lives 
-                    if (process.WaitForExit(1500))
-                    {
-                        logInfo = process.StandardOutput.ReadToEnd();
-                        string[] FL = logInfo.Split(new[] { '\r', '\n' });
-                        var Ended = Array.FindIndex(FL, x => x.Contains("Ended"));
-                        var Started = Array.FindIndex(FL, x => x.Contains("Started"));
-                        var Source = Array.FindIndex(FL, x => x.Contains("Source"));
-                        var Dest = Array.FindIndex(FL, x => x.Contains("Dest"));
-                        var Total = Array.FindIndex(FL, x => x.Contains("Total"));
-                        var Dirs = Array.FindIndex(FL, x => x.Contains("Dirs"));
-                        var Files = Array.FindIndex(FL, x => x.Contains("Files :  "));
-                        var line = Array.FindIndex(FL, x => x.Contains("-----"));
-
+                        //formats the source an destination rules
+                        var rules = fileRule.Split(',');
                         try
                         {
-                            List<string> formatlogfile = new List<string> { FL[Ended], FL[Started], FL[Source], FL[Dest], FL[line], FL[Total], FL[Dirs], FL[Files], FL[line] };
-                            foreach (string logLine in formatlogfile)
-                            {
-                                Console.WriteLine(logLine);
-                            }
-                            collection.Add(formatlogfile);
+                            source = rules[0];
+                            destination = rules[1];
 
                         }
                         catch (Exception)
                         {
-                            Console.WriteLine("the process is fuck up");
-                            collection.Add(FL.ToList());
-                            //savefullerrordetail(logInfo, parameters);
+                            Console.WriteLine("Unable to parse the file rule," + "\"" + rules.ToString() + "\"" + "while copying to" + machine);
+                            continue;
+                        }
+
+
+
+
+
+
+                        if (Directory.Exists(source))
+                        {
+                            source = source.TrimEnd('\\');
+                            destination = destination.TrimEnd('\\');
+                            if (destination.StartsWith(@"\"))
+                            {
+
+                                parameters = String.Format(" \"{0}\" \"\\\\{1}{2}\" /mir ", source, machine, destination);
+                            }
+                            else
+                            {
+                                parameters = String.Format(" \"{0}\" \"{1}\" /mir ", source, destination);
+                            }
+                        }
+                        else if (File.Exists(source))
+                        {
+                            filename = Path.GetFileName(source);
+                            destination = Path.GetDirectoryName(destination);
+                            source = Path.GetDirectoryName(source);
+                            source = source.TrimEnd('\\');
+                            destination = destination.TrimEnd('\\');
+                            if (destination.StartsWith(@"\"))
+                            {
+                                if (Directory.Exists(destination))
+                                {
+                                }
+
+
+
+
+
+                                parameters = String.Format(" \"{0}\" \"\\\\{1}{2}\" {3}  ", source, machine, destination, filename);
+                            }
+                            else
+                            {
+                                parameters = String.Format(" \"{0}\" \"{1}\" {2}   ", source, destination, filename);
+                            }
+                        }
+                        else
+                        {
+                            Console.WriteLine("couldnt find the source file or folder while coping to" + machine);
+                            continue;
 
                         }
 
-                    }
-                    else
-                    {
-                        Console.WriteLine("Timeout");
 
-                        //logInfo = process.StandardOutput.ReadToEnd();
-                        //collection2.Add(logInfo);
-                        //Console.WriteLine(logInfo);
 
-                        process.Kill();
+
+                        //create parameter string 
+                        //string parameters = "\"" + folderOrigin + "\" " + "\"\\\\" + machine + folderDestination + machine + "\" " + "/mir /s";
+                        string logInfo;
+
+
+                        // start copy for each file rule to the current machine 
+                        Process process = new Process();
+                        process.StartInfo.UseShellExecute = false;
+                        process.StartInfo.FileName = "robocopy.exe";
+                        process.StartInfo.CreateNoWindow = true;
+                        process.StartInfo.RedirectStandardOutput = true;
+                        process.StartInfo.Arguments = parameters;
+
+                        process.Start();
+
+                        //set the maximun allowed time in which the robocopy lives 
+                        if (process.WaitForExit(15000))
+                        {
+                            logInfo = process.StandardOutput.ReadToEnd();
+                            string[] FL = logInfo.Split(new[] { '\r', '\n' });
+                            var Ended = Array.FindIndex(FL, x => x.Contains("Ended"));
+                            var Started = Array.FindIndex(FL, x => x.Contains("Started"));
+                            var Source = Array.FindIndex(FL, x => x.Contains("Source"));
+                            var Dest = Array.FindIndex(FL, x => x.Contains("Dest"));
+                            var Total = Array.FindIndex(FL, x => x.Contains("Total"));
+                            var Dirs = Array.FindIndex(FL, x => x.Contains("Dirs"));
+                            var Files = Array.FindIndex(FL, x => x.Contains("Files :  "));
+                            var line = Array.FindIndex(FL, x => x.Contains("-----"));
+
+                            try
+                            {
+                                List<string> formatlogfile = new List<string> { FL[Ended], FL[Started], FL[Source], FL[Dest], FL[line], FL[Total], FL[Dirs], FL[Files], FL[line] };
+                                foreach (string logLine in formatlogfile)
+                                {
+                                    //Console.WriteLine(logLine);
+                                }
+
+
+                                Console.ForegroundColor = ConsoleColor.Red;
+                                Console.WriteLine("The copy to was succesfull" + parameters);
+                                Console.ResetColor();
+
+                                collection.Add(formatlogfile);
+
+                            }
+                            catch (Exception)
+                            {
+                                Console.WriteLine("There was and error while coping to" + parameters);
+                                collection.Add(FL.ToList());
+                                //savefullerrordetail(logInfo, parameters);
+                            }
+
+                        }
+                        else
+                        {
+
+
+                            Console.WriteLine("The process exceeded the maximum allowed time" + parameters);
+
+
+
+
+                            process.Kill();
+                        }
+
+
                     }
 
                 }
+                else
+                {
+                    Console.WriteLine("unable to contact the machine" + machine);
+                }
 
+                
                 //});
 
             }
